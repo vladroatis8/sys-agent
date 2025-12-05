@@ -13,12 +13,16 @@ except ImportError:
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 ADMIN_ROOT_DIR = SCRIPT_DIR / "admin_folder"
+SERVER_API_KEY = os.getenv("MCP_API_KEY")
 
 if not ADMIN_ROOT_DIR.exists():
     ADMIN_ROOT_DIR.mkdir(parents=True)
     print(f"Directorul administrat '{ADMIN_ROOT_DIR}' a fost creat.", file=sys.stderr)
     
     (ADMIN_ROOT_DIR / "system_info.txt").write_text("System status: All services OK. Uptime: 48h.")
+
+if not SERVER_API_KEY:
+    print("ATENTIE: MCP_API_KEY nu este setat! Serverul nu este securizat.", file=sys.stderr)
 
 mcp = FastMCP("SysAdmin Server")
 
@@ -30,17 +34,24 @@ def _resolve_safe_path(path: str) -> str:
     
     return full_path
 
-# --- Definirea Tools---
+def _check_auth(api_key: str):
+    """Verifica daca cheia primita este corecta."""
+    if not SERVER_API_KEY:
+        return True 
+    if api_key != SERVER_API_KEY:
+        raise PermissionError("ACCES INTERZIS: Cheie API incorecta.")
+# --- Tools---
 
 @mcp.tool()
-def get_file_content(file_path: str) -> str:
+def get_file_content(file_path: str, api_key: str) -> str:
     """
-    Returneaza continutul complet al fisierului specificat de cale.
-    
+    Returneaza continutul fisierului.
+    NECESITA 'api_key' pentru autentificare.
     """
     try:
-        resolved_path = _resolve_safe_path(file_path)
+        _check_auth(api_key) # Verificam securitatea
         
+        resolved_path = _resolve_safe_path(file_path)
         if resolved_path.is_dir():
             return f"Eroare: '{file_path}' este un director. Foloseste list_directory."
             
@@ -48,29 +59,27 @@ def get_file_content(file_path: str) -> str:
             content = f.read()
         return content
     except PermissionError as e:
-        return f"Eroare de permisiune/securitate: {e}"
-    except FileNotFoundError:
-        return f"Eroare: Fișierul '{file_path}' nu a fost găsit."
+        return f"SECURITY ALERT: {e}"
     except Exception as e:
-        return f"Eroare la citirea fișierului: {e}"
+        return f"Eroare: {e}"
 
 @mcp.tool()
-def list_directory(dir_path: str = "") -> str: 
+def list_directory(api_key: str, dir_path: str = "") -> str: 
     """
-    Listeaza continutul (fisiere si subdirectoare) al directorului specificat.
+    Listeaza continutul directorului.
+    NECESITA 'api_key' pentru autentificare.
     """
     try:
+        _check_auth(api_key) # Verificam securitatea
+
         resolved_path = _resolve_safe_path(dir_path)
-        
         if not resolved_path.is_dir():
-            return f"Eroare: '{dir_path}' nu este un director sau nu a fost găsit."
+            return f"Eroare: '{dir_path}' nu este un director."
         
         items = os.listdir(resolved_path)
-        
         if not items:
             return "Directorul este gol."
         
-       
         result = f"Continut '{dir_path if dir_path else 'root'}':\n"
         for item in items:
             full_item_path = resolved_path / item
@@ -79,11 +88,9 @@ def list_directory(dir_path: str = "") -> str:
             else:
                 size = full_item_path.stat().st_size
                 result += f"  [FILE] {item} ({size} bytes)\n"
-        
         return result
-        
     except PermissionError as e:
-        return f"Eroare de permisiune: {e}"
+        return f"SECURITY ALERT: {e}"
     except Exception as e:
         return f"Eroare: {e}"
 
@@ -100,7 +107,7 @@ if __name__ == "__main__":
 
     logging.info(f"Server MCP pornit. Admin folder: {ADMIN_ROOT_DIR}")
 
-    # alegem transportul din env, default stdio (ca la etapa 1)
+    
     transport = os.getenv("MCP_TRANSPORT", "stdio").lower()
     logging.info(f"Transport MCP: {transport}")
 
@@ -109,7 +116,7 @@ if __name__ == "__main__":
             host = os.getenv("MCP_HOST", "0.0.0.0")
             port = int(os.getenv("MCP_PORT", "8000"))
             logging.info(f"Pornesc serverul MCP HTTP pe {host}:{port} (path /mcp)")
-            # FastMCP expune endpoint-ul HTTP streaming la /mcp
+            
             mcp.run(transport="http", host=host, port=port)
         else:
             logging.info("Astept comenzi pe stdio...")

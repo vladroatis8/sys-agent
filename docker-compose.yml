@@ -14,7 +14,7 @@ services:
   # 2) MCP server
   mcp-server:
     build:
-      context: ./mcp_server      # <--- SCHIMBARE IMPORTANTA: Căutăm în noul folder
+      context: ./mcp_server      
       dockerfile: Dockerfile.mcp
     container_name: aso_mcp
     depends_on:
@@ -25,8 +25,9 @@ services:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=7000
       - MCP_TRANSPORT=http
+      - MCP_API_KEY=fcsb#1
     volumes:
-      # Montăm folderul administrat din root-ul proiectului în container
+      
       - ./admin_folder:/app/admin_folder
     restart: unless-stopped
 
@@ -42,9 +43,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Aici îi spunem agentului unde să găsească serverul MCP și Ollama în rețeaua Docker
+      
       MCP_SERVER_URL: "http://mcp-server:7000/mcp"
       OLLAMA_API_BASE: "http://ollama:11434"
+      MCP_API_KEY: "fcsb#1"
     restart: unless-stopped
 
 volumes:
