@@ -1,0 +1,25 @@
+# Dockerfile.adk
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiem doar ce avem nevoie pentru agent
+COPY src /app/src
+COPY config /app/config
+
+# ADK va porni din /app și va vedea src.agent
+ENV PYTHONPATH=/app
+
+# Portul ADK web
+EXPOSE 8000
+
+ENV MCP_SERVER_URL=http://mcp-server:7000/mcp
+ENV OLLAMA_API_BASE=http://ollama:11434
+
+# MODIFICARE AICI: Adaugam --host 0.0.0.0
+CMD ["adk", "web", "--host", "0.0.0.0", "--port", "8000"]

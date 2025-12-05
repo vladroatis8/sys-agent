@@ -1,0 +1,21 @@
+# Dockerfile.mcp
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+WORKDIR /app
+
+# Copiem requirements din folderul curent (mcp_server)
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiem tot din folderul curent (mcp_server.py)
+COPY . /app
+
+# Variabilele de mediu
+ENV MCP_TRANSPORT=http
+ENV MCP_HOST=0.0.0.0
+ENV MCP_PORT=7000
+
+EXPOSE 7000
+
+CMD ["python", "mcp_server.py"]

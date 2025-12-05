@@ -1,0 +1,9 @@
+MCP:
+  NAME: 'System Administrator Tools'
+  # --- FOLOSEȘTE CALEA TA ABSOLUTĂ DE WINDOWS ---
+  PATH: 'C:\Users\Vlad\Desktop\proiect_aso\mcp_server.py'
+  TRANSPORT_TYPE: 'stdio'
+
+MODEL:
+  # Folosim modelul tău, care știm că e instalat
+  NAME: 'llama3.2:3b'
