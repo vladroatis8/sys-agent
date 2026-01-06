@@ -1,21 +1,18 @@
-# Dockerfile.adk
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
-
 WORKDIR /app
 
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 COPY src /app/src
 COPY config /app/config
 
 ENV PYTHONPATH=/app
-
-EXPOSE 8000
-
 ENV MCP_SERVER_URL=http://mcp-server:7000/mcp
 ENV OLLAMA_API_BASE=http://ollama:11434
 
-CMD ["adk", "web", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+CMD ["adk", "web", "--port", "8000"]

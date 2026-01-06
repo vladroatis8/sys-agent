@@ -1,24 +1,19 @@
-version: "3.9"
-
 services:
-  # 1) OLLAMA + model
   ollama:
-    build:
-      context: .
-      dockerfile: Dockerfile.ollama
+    image: ollama/ollama:latest
     container_name: aso_ollama
     volumes:
       - ollama_models:/root/.ollama
-    restart: unless-stopped
+    ports:
+      - "11434:11434"
 
-  # 2) MCP server
   mcp-server:
     build:
-      context: ./mcp_server      
+      context: ./mcp_server
       dockerfile: Dockerfile.mcp
     container_name: aso_mcp
-    depends_on:
-      - ollama
+    volumes:
+      - ./admin_folder:/app/admin_folder:ro
     ports:
       - "7000:7000"
     environment:
@@ -26,28 +21,25 @@ services:
       - MCP_PORT=7000
       - MCP_TRANSPORT=http
       - MCP_API_KEY=fcsb#1
-    volumes:
-      
-      - ./admin_folder:/app/admin_folder
-    restart: unless-stopped
+    depends_on:
+      - ollama
 
-  # 3) ADK Web + agent
   adk-web:
     build:
       context: .
       dockerfile: Dockerfile.adk
     container_name: aso_adk_web
-    depends_on:
-      - mcp-server
-      - ollama
     ports:
       - "8000:8000"
     environment:
-      
-      MCP_SERVER_URL: "http://mcp-server:7000/mcp"
-      OLLAMA_API_BASE: "http://ollama:11434"
-      MCP_API_KEY: "fcsb#1"
-    restart: unless-stopped
+      - OLLAMA_API_BASE=http://ollama:11434
+      - MCP_HTTP_URL=http://mcp-server:7000/mcp
+      - MCP_API_KEY=fcsb#1
+      - MCP_HTTP_URL=http://mcp-server:7000/mcp
+      - PYTHONPATH=/app
+    depends_on:
+      - mcp-server
+      - ollama
 
 volumes:
   ollama_models:
